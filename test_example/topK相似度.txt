@@ -1,0 +1,30 @@
+import os
+import numpy as np
+from scipy.spatial.distance import cdist
+
+# 设置参数
+data_dir = 'path/to/your/data/dir'
+model = models.vgg16(pretrained=True)
+model = model.eval()
+K = 5
+
+# 获取所有图片的特征向量
+features = []
+img_paths = []
+for root, dirs, files in os.walk(data_dir):
+    for file in files:
+        if file.endswith('.jpg'):
+            img_path = os.path.join(root, file)
+            feature = get_feature(img_path, model).numpy()
+            features.append(feature)
+            img_paths.append(img_path)
+features = np.concatenate(features, axis=0)
+
+# 计算每张图片和其他图片的特征向量之间的cosine距离，并选择距离最小的前K个图片作为参考图片
+ref_img_paths = []
+for i, feature in enumerate(features):
+    dists = cdist(feature.reshape(1, -1), features, metric='cosine')[0]
+    sorted_idx = np.argsort(dists)[:K+1]
+    sorted_idx = sorted_idx[sorted_idx != i]
+    ref_img_paths.append([img_paths[j] for j in sorted_idx])
+print(ref_img_paths)
